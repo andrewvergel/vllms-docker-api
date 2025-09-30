@@ -1,0 +1,34 @@
+services:
+  vllm-server:
+    image: vllm/vllm-openai:nightly
+    container_name: vllm-server
+    command: --model allenai/olmOCR-7B-0825-FP8 --host 0.0.0.0 --port 8001 --served-model-name olmocr --max-model-len 8192 --gpu-memory-utilization 0.9
+    ports:
+      - "8001:8001"
+    volumes:
+      - model_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - OLMOCR_DEVICE=cuda
+
+  olmocr-api:
+    build: .
+    container_name: olmocr-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./workspace:/workspace
+    depends_on:
+      - vllm-server
+    environment:
+      - OLMOCR_DEVICE=cuda
+
+volumes:
+  model_cache:
+    driver: local

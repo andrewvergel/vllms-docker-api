@@ -1,0 +1,78 @@
+version: "3.8"
+
+services:
+  vllm-server:
+    # Use CPU-only configuration for systems without GPU
+    image: vllm/vllm-openai:nightly
+    container_name: vllm-server-cpu
+    command: >
+      --model allenai/olmOCR-7B-0825-FP8
+      --host 0.0.0.0
+      --port 8001
+      --served-model-name olmocr
+      --max-model-len 4096
+      --gpu-memory-utilization 0.9
+      --device cpu
+    ports:
+      - "8001:8001"
+    volumes:
+      - model_cache:/root/.cache/huggingface
+    environment:
+      - OLMOCR_DEVICE=cpu
+    # Resource limits for Mac
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+  olmocr-api:
+    build: .
+    container_name: olmocr-api-cpu
+    ports:
+      - "8000:8000"
+    # Removed workspace volume as it's not needed
+    depends_on:
+      - vllm-server
+    environment:
+      - OLMOCR_DEVICE=cpu
+    # Resource limits for Mac
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+volumes:
+  model_cache:
+    driver: local
+# Optional: If you want to try with Apple Silicon GPU acceleration
+# Uncomment the section below if you have proper setup for GPU support on Mac
+#
+# services:
+#   vllm-server:
+#     # Alternative configuration for Apple Silicon GPU
+#     image: vllm/vllm-openai:nightly
+#     container_name: vllm-server-mac-gpu
+#     command: >
+#       --model allenai/olmOCR-7B-0825-FP8
+#       --host 0.0.0.0
+#       --port 8001
+#       --served-model-name olmocr
+#       --max-model-len 8192
+#       --gpu-memory-utilization 0.8
+#       --device mps  # Metal Performance Shaders for Apple Silicon
+#     ports:
+#       - "8001:8001"
+#     volumes:
+#       - model_cache:/root/.cache/huggingface
+#     environment:
+#       - OLMOCR_DEVICE=mps
+#     deploy:
+#       resources:
+#         limits:
+#           memory: 12G
+#         reservations:
+#           memory: 6G
