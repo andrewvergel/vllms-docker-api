@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  # Multi-Model API - Generic API for processing with multiple AI models
+  multi-model-api:
+    build: .
+    container_name: ${API_CONTAINER_NAME:-multi-model-api}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./workspace:/workspace
+    env_file:
+      - .env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    restart: unless-stopped

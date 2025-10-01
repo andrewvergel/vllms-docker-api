@@ -1,13 +1,14 @@
-# OlmOCR Docker API
+# Multi-Model OCR API
 
-A production-ready OCR (Optical Character Recognition) service that leverages the Allen Institute's OlmOCR model to extract text from PDF documents and images. Built with a microservices architecture using VLLM for high-performance inference and FastAPI for the REST API layer.
+A production-ready OCR (Optical Character Recognition) service that can connect to multiple vLLM servers for processing different models. Built with a microservices architecture using vLLM for high-performance inference and FastAPI for the REST API layer.
 
 ## Overview
 
 This project provides a containerized OCR solution that combines:
-- **VLLM Server**: High-performance inference engine serving the `allenai/olmOCR-7B-0825-FP8` model
-- **FastAPI Wrapper**: REST API interface for document processing with file upload support
-- **GPU Acceleration**: NVIDIA CUDA support for optimized processing performance
+- **Multi-Model Support**: Connect to multiple vLLM servers via environment variables
+- **Dynamic Routing**: Automatically route requests to appropriate vLLM server based on model
+- **FastAPI Interface**: REST API for document processing with file upload support
+- **Flexible Configuration**: Easy model management through environment variables
 
 ## Architecture
 
@@ -54,7 +55,7 @@ cd vllm-docker-api
 
 #### For Systems with NVIDIA GPU:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 #### For Systems without GPU (CPU-only):
@@ -65,21 +66,29 @@ docker-compose up -d
 
 Or manually:
 ```bash
-docker-compose -f docker-compose.cpu.yml up -d
+docker compose -f docker-compose.cpu.yml up -d
 ```
 
 This will start both containers:
 - `olmocr-api` on `http://localhost:8000`
 - `vllm-server` on `http://localhost:8001`
 
-### 3. Check Status
+### 3. Check Status and Available Models
 ```bash
+# Check API health
 curl http://localhost:8000/health
+
+# List available models
+curl http://localhost:8000/models
 ```
 
 ### 4. Process a Document
 ```bash
-curl -X POST "http://localhost:8000/process" \
+# List available models first
+curl http://localhost:8000/models
+
+# Process with a specific model
+curl -X POST "http://localhost:8000/process?model=olmocr" \
   -F "file=@document.pdf" \
   -F "output_format=markdown"
 ```
@@ -87,30 +96,54 @@ curl -X POST "http://localhost:8000/process" \
 ## API Endpoints
 
 ### GET /
-Service information and status
+Service information and available models
 ```json
 {
-  "service": "OlmOCR API",
-  "vllm_server": "http://vllm-server:8001",
+  "service": "Multi-Model OCR API",
+  "vllm_servers": {
+    "olmocr": "http://vllm-olmocr:8001",
+    "model2": "http://vllm-model2:8002"
+  },
+  "available_models": ["olmocr", "model2"],
   "status": "running"
 }
 ```
 
 ### GET /health
-Health check for VLLM server connectivity
+Health check for all configured vLLM servers
 ```json
 {
   "status": "healthy",
-  "vllm_server": "http://vllm-server:8001",
-  "vllm_healthy": true
+  "servers_health": {
+    "olmocr (http://vllm-olmocr:8001)": true,
+    "model2 (http://vllm-model2:8002)": true
+  },
+  "total_servers": 2,
+  "healthy_servers": 2
+}
+```
+
+### GET /models
+List all available models and their status
+```json
+{
+  "available_models": {
+    "olmocr": {
+      "server_url": "http://vllm-olmocr:8001",
+      "served_name": "olmocr",
+      "healthy": true
+    }
+  },
+  "total_models": 1
 }
 ```
 
 ### POST /process
-Process a PDF or image file
+Process a PDF or image file with a specific model
 
 **Parameters:**
 - `file` (UploadFile): PDF or image file to process
+- `model` (str): **Required** - Model name to use (must match VLLM_SERVER_* config)
 - `output_format` (str): Output format (`markdown` or `text`)
 - `gpu_util` (float): GPU memory utilization (0.0-1.0)
 - `max_len` (int): Maximum model length
@@ -119,6 +152,9 @@ Process a PDF or image file
 ```json
 {
   "filename": "document.pdf",
+  "model_used": "olmocr",
+  "server_used": "http://vllm-olmocr:8001",
+  "served_model_name": "olmocr",
   "markdown_base64": "base64-encoded-markdown-content",
   "processing_time_seconds": 45,
   "total_input_tokens": 5256,
@@ -131,31 +167,37 @@ Process a PDF or image file
 
 ### Environment Variables
 
+#### Core API Configuration
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OLMOCR_DEVICE` | `cuda` | Device for model inference |
+| `DEFAULT_GPU_UTIL` | `0.90` | Default GPU memory utilization |
+| `DEFAULT_MAX_LEN` | `18608` | Default maximum model length |
 
-### Docker Compose Settings
+#### Multi-Model vLLM Configuration
+| Variable Pattern | Example | Description |
+|------------------|---------|-------------|
+| `VLLM_SERVER_[MODEL]` | `VLLM_SERVER_OLMOCR=http://vllm-olmocr:8001` | vLLM server for specific model |
+| `VLLM_MODEL_[MODEL]` | `VLLM_MODEL_OLMOCR=olmocr` | Served model name (optional) |
 
-Key configuration options in `docker-compose.yml`:
+#### Device Configuration
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OLMOCR_DEVICE` | `cpu` | Device type for processing |
 
-```yaml
-# GPU Configuration
-deploy:
-  resources:
-    reservations:
-      devices:
-        - driver: nvidia
-          count: all
-          capabilities: [gpu]
+### Example Configuration
 
-# Model Settings
-command: --model allenai/olmOCR-7B-0825-FP8 --max-model-len 8192 --gpu-memory-utilization 0.9
+```bash
+# .env file
+DEFAULT_GPU_UTIL=0.90
+DEFAULT_MAX_LEN=18608
 
-# Volume Mounts
-volumes:
-  - ./workspace:/workspace
-  - model_cache:/root/.cache/huggingface
+# Model servers
+VLLM_SERVER_OLMOCR=http://vllm-olmocr:8001
+VLLM_SERVER_MODEL2=http://vllm-model2:8002
+
+# Optional: Custom served names
+VLLM_MODEL_OLMOCR=olmocr
+VLLM_MODEL_MODEL2=model2
 ```
 
 ## Development
@@ -280,20 +322,20 @@ This configuration works on:
    docker volume rm vllm-docker-api_model_cache
 
    # Check download progress
-   docker-compose -f docker-compose.cpu.yml logs vllm-server
+   docker compose -f docker-compose.cpu.yml logs vllm-server
    ```
 
 ### Logs (CPU Setup)
 ```bash
 # View all logs
-docker-compose -f docker-compose.cpu.yml logs
+docker compose -f docker-compose.cpu.yml logs
 
 # View specific service logs
-docker-compose -f docker-compose.cpu.yml logs olmocr-api-cpu
-docker-compose -f docker-compose.cpu.yml logs vllm-server-cpu
+docker compose -f docker-compose.cpu.yml logs olmocr-api-cpu
+docker compose -f docker-compose.cpu.yml logs vllm-server-cpu
 
 # Follow logs in real-time
-docker-compose -f docker-compose.cpu.yml logs -f
+docker compose -f docker-compose.cpu.yml logs -f
 ```
 
 ## General Troubleshooting
@@ -324,11 +366,11 @@ docker-compose -f docker-compose.cpu.yml logs -f
 ### Logs (Linux)
 ```bash
 # View all logs
-docker-compose logs
+docker compose logs
 
 # View specific service logs
-docker-compose logs olmocr-api
-docker-compose logs vllm-server
+docker compose logs olmocr-api
+docker compose logs vllm-server
 ```
 
 ## License

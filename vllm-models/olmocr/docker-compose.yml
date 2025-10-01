@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  vllm-olmocr:
+    image: vllm/vllm-openai:nightly
+    container_name: ${CONTAINER_NAME}
+    command: >
+      --model ${VLLM_MODEL_PATH}
+      --host ${VLLM_HOST}
+      --port ${VLLM_PORT}
+      --served-model-name ${VLLM_SERVED_MODEL_NAME}
+      --max-model-len ${VLLM_MAX_MODEL_LEN}
+      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION}
+      --tensor-parallel-size ${VLLM_TENSOR_PARALLEL_SIZE}
+      --max-num-batched-tokens ${VLLM_MAX_NUM_BATCHED_TOKENS}
+    ports:
+      - "${VLLM_PORT}:${VLLM_PORT}"
+    volumes:
+      - ../model_cache:/root/.cache/huggingface
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - VLLM_LOGGING_LEVEL=WARNING
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    restart: unless-stopped
+
+volumes:
+  model_cache:
+    external: true

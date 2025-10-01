@@ -38,7 +38,6 @@ sudo apt update && \
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && \
 sudo systemctl start docker && \
 sudo systemctl enable docker && \
-sudo docker run hello-world && \
 sudo usermod -aG docker $USER && \
 echo "✅ Docker instalado correctamente. Cierra sesión y vuelve a iniciarla para usar docker sin sudo"
 ```
