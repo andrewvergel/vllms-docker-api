@@ -3,7 +3,7 @@ import os
 import requests
 from typing import Dict
 
-from .models import ModelFactory, ProcessingResult
+from models import ModelFactory, ProcessingResult
 
 app = FastAPI(title="Multi-Model API")
 
@@ -102,8 +102,8 @@ def list_models():
 
 @app.post("/v1/process")
 async def process_document(
-    file: UploadFile = File(...),
     model: str,  # Required model - must be configured
+    file: UploadFile = File(...),
     output_format: str = "markdown",
     gpu_util: float = DEFAULT_GPU_UTIL,
     max_len: int = DEFAULT_MAX_LEN,

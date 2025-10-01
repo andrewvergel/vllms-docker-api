@@ -12,7 +12,7 @@ import base64
 import time
 from pathlib import Path
 from typing import Dict, Any
-from .base_model import BaseModel, ModelConfig
+from .base_model import BaseModel, ModelConfig, ProcessingResult
 
 
 class OlmOCRModel(BaseModel):
@@ -34,7 +34,7 @@ class OlmOCRModel(BaseModel):
 
     def process_with_vllm_api(self, file_path: str, output_format: str) -> Dict[str, Any]:
         """
-        Process file using external VLLM server API.
+        Process file using external VLLM server API with OpenAI-compatible chat completions.
 
         Args:
             file_path: Path to the file to process
@@ -47,26 +47,66 @@ class OlmOCRModel(BaseModel):
         with open(file_path, "rb") as f:
             file_content = f.read()
 
-        # Prepare the request payload for VLLM API
-        # This is a simplified example - adjust based on your VLLM server's API
+        # Convert file to base64 data URL
+        file_extension = Path(file_path).suffix.lower().lstrip('.')
+        if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+            mime_type = f"image/{file_extension}"
+            if file_extension == 'jpg':
+                mime_type = "image/jpeg"
+        else:
+            mime_type = "application/octet-stream"
+
+        file_b64 = base64.b64encode(file_content).decode('utf-8')
+        image_data_url = f"data:{mime_type};base64,{file_b64}"
+
+        # Prepare the request payload for OpenAI-compatible chat completions API
         payload = {
             "model": self.config.served_name,
-            "file": base64.b64encode(file_content).decode('utf-8'),
-            "output_format": output_format,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Describe this image in one sentence. Output format: {output_format}"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_data_url
+                            }
+                        }
+                    ]
+                }
+            ],
             "max_tokens": 2000,  # Adjust as needed
+            "temperature": 0.7
         }
 
         # Make API call to external VLLM server
         try:
             response = requests.post(
-                f"{self.config.server_url}/v1/process",  # Adjust endpoint as needed
+                f"{self.config.server_url}/v1/chat/completions",
                 json=payload,
                 timeout=300  # 5 minute timeout
             )
+
+            # Log the full response for debugging
+            print(f"VLLM API Response Status: {response.status_code}")
+            print(f"VLLM API Response Headers: {response.headers}")
+            print(f"VLLM API Response Body: {response.text}")
+
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"API call to VLLM server failed: {str(e)}")
+            # Enhanced error handling to see the actual server response
+            if hasattr(e, 'response') and e.response is not None:
+                error_msg = f"API call to VLLM server failed: {response.status_code} {response.reason} for url: {response.url}"
+                error_msg += f"\nResponse body: {response.text}"
+                error_msg += f"\nRequest payload: {json.dumps(payload, indent=2)}"
+                raise RuntimeError(error_msg)
+            else:
+                raise RuntimeError(f"API call to VLLM server failed: {str(e)}")
 
     def extract_content(self, output_dir: str) -> str:
         """
@@ -112,8 +152,11 @@ class OlmOCRModel(BaseModel):
             api_response = self.process_with_vllm_api(temp_file_path, output_format)
             processing_time = time.time() - start_time
 
-            # Extract content from API response
-            content = api_response.get("content", "")
+            # Extract content from chat completions response
+            content = ""
+            if api_response.get("choices") and len(api_response["choices"]) > 0:
+                content = api_response["choices"][0].get("message", {}).get("content", "")
+
             content_base64 = ""
             if content:
                 content_bytes = content.encode('utf-8')
@@ -127,10 +170,14 @@ class OlmOCRModel(BaseModel):
                 served_model_name=self.config.served_name,
                 content_base64=content_base64,
                 processing_time_seconds=int(processing_time),
-                total_input_tokens=api_response.get("input_tokens", 0),
-                total_output_tokens=api_response.get("output_tokens", 0),
-                pages_processed=api_response.get("pages_processed", 1),
-                metadata=api_response.get("metadata", {})
+                total_input_tokens=api_response.get("usage", {}).get("prompt_tokens", 0),
+                total_output_tokens=api_response.get("usage", {}).get("completion_tokens", 0),
+                pages_processed=1,  # Single image processing
+                metadata={
+                    "model": api_response.get("model", ""),
+                    "finish_reason": api_response.get("choices", [{}])[0].get("finish_reason", ""),
+                    "response_format": output_format
+                }
             )
 
         except Exception as e:
