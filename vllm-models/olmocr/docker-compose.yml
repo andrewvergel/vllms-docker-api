@@ -8,6 +8,7 @@ services:
       --port ${VLLM_PORT}
       --served-model-name ${VLLM_SERVED_MODEL_NAME}
       --max-model-len ${VLLM_MAX_MODEL_LEN}
+      --swap-space 8
       --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION}
       --tensor-parallel-size ${VLLM_TENSOR_PARALLEL_SIZE}
       --max-num-batched-tokens ${VLLM_MAX_NUM_BATCHED_TOKENS}
@@ -24,7 +25,7 @@ services:
       - VLLM_LOGGING_LEVEL=WARNING
       - TORCH_CUDA_ARCH_LIST=7.0;7.5;8.0;8.6;8.9;9.0+PTX
       - NVIDIA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}
-      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
     deploy:
       resources:
         reservations:
