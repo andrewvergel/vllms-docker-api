@@ -2,7 +2,7 @@ services:
   vllm-server:
     image: vllm/vllm-openai:nightly
     container_name: vllm-server
-    command: --model allenai/olmOCR-7B-0825-FP8 --host 0.0.0.0 --port 8001 --served-model-name olmocr --max-model-len 24576 --gpu-memory-utilization 0.95 --max-num-batched-tokens 65536 --max-num-seqs 256 --tensor-parallel-size 1 --block-size 16 --swap-space 16 --max-parallel-loading-workers 4 --disable-log-stats --disable-custom-all-reduce
+    command: --model allenai/olmOCR-7B-0825-FP8 --host 0.0.0.0 --port 8001 --served-model-name olmocr --max-model-len 20480 --gpu-memory-utilization 0.88 --max-num-batched-tokens 49152 --max-num-seqs 192 --tensor-parallel-size 1 --block-size 16 --swap-space 16 --max-parallel-loading-workers 4 --disable-log-stats --disable-custom-all-reduce
     ports:
       - "8001:8001"
     volumes:
