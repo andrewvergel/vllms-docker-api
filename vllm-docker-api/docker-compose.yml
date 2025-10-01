@@ -2,11 +2,12 @@ services:
   vllm-server:
     image: vllm/vllm-openai:nightly
     container_name: vllm-server
-    command: --model allenai/olmOCR-7B-0825-FP8 --host 0.0.0.0 --port 8001 --served-model-name olmocr --max-model-len 20480 --gpu-memory-utilization 0.96 --max-num-batched-tokens 49152 --max-num-seqs 192 --tensor-parallel-size 1 --block-size 32 --swap-space 12 --max-parallel-loading-workers 4 --enable-chunked-prefill --disable-log-stats --disable-custom-all-reduce
+    command: --model allenai/olmOCR-7B-0825-FP8 --host 0.0.0.0 --port 8001 --served-model-name olmocr --max-model-len 16384 --gpu-memory-utilization 0.90 --max-num-batched-tokens 32768 --max-num-seqs 128 --tensor-parallel-size 1 --block-size 16 --swap-space 8 --max-parallel-loading-workers 2 --disable-log-stats --disable-custom-all-reduce
     ports:
       - "8001:8001"
     volumes:
-      - model_cache:/root/.cache/huggingface
+      - ./model_cache:/root/.cache/huggingface
+      - /mnt/hf_models:/mnt/hf_models
     deploy:
       resources:
         reservations:
@@ -16,10 +17,6 @@ services:
               capabilities: [gpu]
     environment:
       - OLMOCR_DEVICE=cuda
-      - TORCH_CUDA_ARCH_LIST=8.6
-      - OMP_NUM_THREADS=1
-      - NCCL_DEBUG=INFO
-      - CUDA_VISIBLE_DEVICES=0
 
   olmocr-api:
     build: .

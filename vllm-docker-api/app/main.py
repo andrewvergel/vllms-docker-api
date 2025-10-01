@@ -10,8 +10,8 @@ import base64
 app = FastAPI(title="OlmOCR API")
 
 # Configuración optimizada para máximo rendimiento
-DEFAULT_GPU_UTIL = "0.96"
-DEFAULT_MAX_LEN = "20480"
+DEFAULT_GPU_UTIL = "0.90"
+DEFAULT_MAX_LEN = "16384"
 VLLM_SERVER_URL = "http://vllm-server:8001"
 
 

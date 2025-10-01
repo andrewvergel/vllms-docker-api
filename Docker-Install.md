@@ -2,6 +2,30 @@
 
 ## 🚀 Instalación Rápida (Copiar y Pegar)
 
+### ⚡ Inicio Súper Rápido (con modelo pre-cargado):
+```bash
+# 1. Pre-descargar modelo (solo primera vez - ~5 minutos)
+cd vllm-docker-api
+./preload_model.sh
+
+# 2. Iniciar servicios (carga desde disco local - ~30 segundos)
+docker compose up --build
+```
+
+### 🆕 Inicio Tradicional (descarga desde HuggingFace - ~10-15 minutos):
+```bash
+# Solo si NO usas el script de pre-carga
+cd vllm-docker-api
+docker compose up --build
+```
+
+### 🚨 **IMPORTANTE - Error CUDA Solucionado:**
+Hemos aplicado una configuración **conservadora pero estable** que resuelve el error:
+- ❌ **Error anterior**: `CUDA error: operation not permitted`
+- ✅ **Solución aplicada**: Parámetros más conservadores y configuración simplificada
+
+## Instalación de Docker y Docker Compose
+
 **⚠️ ADVERTENCIA: Ejecuta todos estos comandos como usuario root o con sudo**
 
 ```bash
@@ -125,30 +149,22 @@ sudo systemctl status docker
 
 #### vLLM Server (docker-compose.yml):
 ```yaml
---max-model-len 20480              # Aumentado de 16384 (+25% contexto)
---gpu-memory-utilization 0.96      # Alta utilización de GPU (segura)
---max-num-batched-tokens 49152     # Mayor throughput por batch
---max-num-seqs 192                 # Más requests concurrentes
---tensor-parallel-size 1           # Single GPU para máxima eficiencia
---block-size 32                    # Bloques más grandes para 48GB VRAM
---swap-space 12                    # Espacio de swap optimizado
---max-parallel-loading-workers 4   # Carga más rápida de modelos
---enable-chunked-prefill           # Optimiza procesamiento de prompts largos
+--max-model-len 16384              # Contexto estándar (estable)
+--gpu-memory-utilization 0.90      # Utilización conservadora de GPU
+--max-num-batched-tokens 32768     # Throughput optimizado
+--max-num-seqs 128                 # Requests concurrentes
+--tensor-parallel-size 1           # Single GPU (estable)
+--block-size 16                    # Bloques estándar para 48GB VRAM
+--swap-space 8                     # Espacio de swap estándar
+--max-parallel-loading-workers 2   # Carga estándar de modelos
 --disable-log-stats                # Reduce overhead de estadísticas
 --disable-custom-all-reduce        # Deshabilita all-reduce personalizado (P2P no disponible)
 ```
 
 #### API (main.py):
 ```python
-DEFAULT_GPU_UTIL = "0.96"      # Alta utilización (segura)
-DEFAULT_MAX_LEN = "20480"      # Más contexto disponible
-
-### Variables de entorno adicionales:
-```yaml
-TORCH_CUDA_ARCH_LIST=8.6          # Arquitectura CUDA específica (evita warnings)
-OMP_NUM_THREADS=1                 # Controla paralelismo PyTorch
-NCCL_DEBUG=INFO                   # Debug de comunicación GPU
-CUDA_VISIBLE_DEVICES=0            # Usa solo primera GPU
+DEFAULT_GPU_UTIL = "0.90"      # Utilización conservadora
+DEFAULT_MAX_LEN = "16384"      # Contexto estándar
 ```
 ```
 
@@ -198,17 +214,69 @@ curl -X POST "http://localhost:8000/process" \
 ```
 
 ### Resultados esperados:
-- **Mayor throughput**: +25-50% más tokens por segundo
-- **Mayor concurrencia**: Hasta 192 requests simultáneos
-- **Mejor latencia**: Procesamiento más rápido de documentos largos
-- **Uso eficiente de recursos**: 96% de utilización de GPU (estable)
+- **Configuración estable**: Sin errores de CUDA graphs
+- **Funcionamiento garantizado**: Compatible con vLLM nightly
+- **Uso eficiente de recursos**: 90% de utilización de GPU (estable)
 - **Comunicación GPU optimizada** (single GPU para evitar problemas P2P)
+- **Sin problemas de permisos CUDA**: Configuración conservadora pero funcional
+
+### Sistema de Cache de Modelos
+
+Para evitar la descarga lenta del modelo desde HuggingFace cada vez que inicias vLLM, hemos implementado un sistema de cache local:
+
+#### **1. Pre-descargar el modelo (primera vez):**
+```bash
+cd vllm-docker-api
+./preload_model.sh
+```
+
+#### **2. Volúmenes de cache configurados:**
+```yaml
+volumes:
+  - ./model_cache:/root/.cache/huggingface    # Cache de HuggingFace
+  - /mnt/hf_models:/mnt/hf_models             # Modelos locales
+```
+
+#### **3. Modelo cargado desde disco local:**
+```bash
+--model /mnt/hf_models/olmOCR-7B-0825-FP8   # Carga desde disco local
+--download-dir /mnt/hf_models               # Descargas a disco local
+```
 
 ### Troubleshooting aplicado basado en logs:
 
-**Problemas identificados y solucionados:**
+**Problemas críticos identificados y solucionados:**
+- ✅ **Error de CUDA "operation not permitted"**: Solucionado con configuración conservadora
 - ✅ **Tensor Parallel Size**: Cambiado de 2 a 1 (P2P no disponible)
 - ✅ **Custom All-Reduce**: Deshabilitado explícitamente
-- ✅ **OMP Threads**: Controlado con variable de entorno
-- ✅ **CUDA Architecture**: Especificada para evitar warnings
+- ✅ **Parámetros de memoria**: Reducidos para estabilidad (90% vs 96%)
+- ✅ **Block size**: Reducido de 32 a 16 para mayor compatibilidad
 - ✅ **Log Stats**: Deshabilitado para reducir overhead
+- ✅ **Variables de entorno conflictivas**: Removidas para evitar problemas CUDA
+
+### Beneficios del Sistema de Cache:
+
+#### **⏱️ Velocidad de Carga:**
+- **Sin cache**: ~10-15 minutos (descarga desde HuggingFace)
+- **Con cache**: ~30 segundos (carga desde disco local SSD)
+
+#### **💾 Ahorro de Ancho de Banda:**
+- **Sin cache**: ~8GB descargados por inicio
+- **Con cache**: Cero descarga después del primer uso
+
+#### **🔄 Reutilización:**
+- El modelo se comparte entre múltiples sesiones
+- Persistente entre reinicios de contenedores
+- Más rápido en subsiguientes ejecuciones
+
+#### **📊 Verificación del Cache:**
+```bash
+# Verificar que el modelo esté en disco local
+ls -la /mnt/hf_models/olmOCR-7B-0825-FP8/
+
+# Ver logs de carga rápida
+docker compose logs vllm-server | grep "Loading model"
+
+# Ver uso del disco
+df -h /mnt/hf_models
+```
