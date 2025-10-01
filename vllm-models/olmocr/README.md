@@ -44,6 +44,169 @@ curl http://localhost:${VLLM_PORT}/v1/models
 curl http://localhost:${VLLM_PORT}/v1/models/${VLLM_SERVED_MODEL_NAME}
 ```
 
+### Validación del Modelo
+
+Una vez que el servidor esté funcionando, puedes validar que el modelo OlmOCR responde correctamente con estos comandos curl:
+
+#### **Uso Rápido - Script Automatizado**
+```bash
+cd vllm-models/olmocr
+./curl_examples.sh ${VLLM_PORT}
+```
+
+#### **Ejemplos Individuales**
+
+Una vez que el servidor esté funcionando, puedes validar que el modelo OlmOCR responde correctamente con estos comandos curl:
+
+#### **Ejemplo 1: Análisis de Imagen (Recomendado)**
+
+```bash
+curl -X POST "http://localhost:${VLLM_PORT}/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "olmocr",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Describe this image in one sentence."
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://cdn.britannica.com/61/93061-050-99147DCE/Statue-of-Liberty-Island-New-York-Bay.jpg"
+            }
+          }
+        ]
+      }
+    ],
+    "max_tokens": 100,
+    "temperature": 0.1
+  }'
+```
+
+#### **Ejemplo 2: Pregunta Simple sobre Imagen**
+
+```bash
+curl -X POST "http://localhost:${VLLM_PORT}/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "olmocr",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "¿Qué ves en esta imagen? Responde en español."
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://images.unsplash.com/photo-1544568100-847a948585b9?w=800"
+            }
+          }
+        ]
+      }
+    ],
+    "max_tokens": 150,
+    "temperature": 0.2
+  }'
+```
+
+#### **Ejemplo 3: Completions Básico**
+
+```bash
+curl -X POST "http://localhost:${VLLM_PORT}/v1/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "olmocr",
+    "prompt": "The future of artificial intelligence",
+    "max_tokens": 50,
+    "temperature": 0.7
+  }'
+```
+
+#### **Ejemplo 4: Información del Modelo**
+
+```bash
+# Verificar que el modelo está cargado correctamente
+curl http://localhost:${VLLM_PORT}/v1/models
+
+# Información detallada del modelo
+curl http://localhost:${VLLM_PORT}/v1/models/olmocr
+```
+
+#### **Ejemplo 5: Procesamiento de Documento Complejo**
+
+```bash
+curl -X POST "http://localhost:${VLLM_PORT}/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "olmocr",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Extrae toda la información importante de esta imagen: nombres, fechas, números y conceptos clave. Organiza la información de manera estructurada."
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=800"
+            }
+          }
+        ]
+      }
+    ],
+    "max_tokens": 300,
+    "temperature": 0.1
+  }'
+```
+
+### ⚠️ Troubleshooting de Validación
+
+Si los comandos curl no funcionan:
+
+1. **Verificar que el servidor esté corriendo**:
+   ```bash
+   docker-compose ps
+   ```
+
+2. **Verificar logs del contenedor**:
+   ```bash
+   docker-compose logs vllm-olmocr
+   ```
+
+3. **Probar el health check primero**:
+   ```bash
+   curl http://localhost:${VLLM_PORT}/health
+   # Debería retornar: {"status":"healthy"}
+   ```
+
+4. **Si hay errores de conexión**:
+   ```bash
+   # Verificar que el puerto esté abierto
+   netstat -tulpn | grep :${VLLM_PORT}
+
+   # Verificar configuración de firewall
+   ufw status
+   ```
+
+5. **Para debugging más detallado**:
+   ```bash
+   # Logs con más detalles
+   docker-compose logs -f --tail=100 vllm-olmocr
+
+   # Información del sistema
+   nvidia-smi
+   docker system df
+   ```
+
 ## ⚙️ Configuration
 
 All configuration is done through environment variables in the `.env` file. This allows you to easily adjust parameters according to your GPU capabilities.
@@ -289,3 +452,20 @@ docker-compose up -d
 - [Official vLLM Documentation](https://docs.vllm.ai/)
 - [OlmOCR Model on Hugging Face](https://huggingface.co/allenai/olmOCR-7B-0825)
 - [GPU Installation Guide](https://docs.vllm.ai/en/stable/getting_started/installation/gpu.html)
+
+## 📋 Archivos Adicionales
+
+### `curl_examples.sh`
+Script ejecutable con ejemplos de curl para validar el funcionamiento del modelo:
+```bash
+cd vllm-models/olmocr
+./curl_examples.sh              # Usa puerto por defecto (8001)
+./curl_examples.sh 8001         # Especifica puerto custom
+```
+
+**Incluye ejemplos de:**
+- ✅ Health checks y verificación de modelos
+- 🖼️ Análisis de imágenes con visión por computadora
+- 💬 Chat completions con texto e imágenes
+- 🔧 Requests de debugging y troubleshooting
+- 🌍 Requests multi-idioma (español, inglés)
