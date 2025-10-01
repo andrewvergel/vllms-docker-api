@@ -32,13 +32,14 @@ class OlmOCRModel(BaseModel):
         """
         raise NotImplementedError("External VLLM servers use HTTP API, not subprocess commands")
 
-    def process_with_vllm_api(self, file_path: str, output_format: str) -> Dict[str, Any]:
+    def process_with_vllm_api(self, file_path: str, output_format: str, prompt: str = None) -> Dict[str, Any]:
         """
         Process file using external VLLM server API with OpenAI-compatible chat completions.
 
         Args:
             file_path: Path to the file to process
             output_format: Desired output format (markdown, json, etc.)
+            prompt: Custom prompt to use for processing. If None, uses default prompt.
 
         Returns:
             API response from VLLM server
@@ -59,6 +60,24 @@ class OlmOCRModel(BaseModel):
         file_b64 = base64.b64encode(file_content).decode('utf-8')
         image_data_url = f"data:{mime_type};base64,{file_b64}"
 
+        # Default prompt if none provided
+        if prompt is None:
+            prompt = (
+                "Please output the layout information from the PDF image, including each layout element's bbox, its category, and the corresponding text content within the bbox.\n\n"
+                "1. Bbox format: [x1, y1, x2, y2]\n\n"
+                "2. Layout Categories: The possible categories are ['Caption', 'Footnote', 'Formula', 'List-item', 'Page-footer', 'Page-header', 'Picture', 'Section-header', 'Table', 'Text', 'Title'].\n\n"
+                "3. Text Extraction & Formatting Rules:\n"
+                "    - Picture: For the 'Picture' category, the text field should be omitted.\n"
+                "    - Formula: Format its text as LaTeX.\n"
+                "    - Table: Format its text as HTML.\n"
+                "    - All Others (Text, Title, etc.): Format their text as Markdown.\n\n"
+                "4. Constraints:\n"
+                "    - The output text must be the original text from the image, with no translation.\n"
+                "    - All layout elements must be sorted according to human reading order.\n\n"
+                "5. Final Output: The entire output must be a single JSON object.\n"
+                f"Output format: {output_format}"
+            )
+
         # Prepare the request payload for OpenAI-compatible chat completions API
         payload = {
             "model": self.config.served_name,
@@ -68,19 +87,17 @@ class OlmOCRModel(BaseModel):
                     "content": [
                         {
                             "type": "text",
-                            "text": "Que modelo eres?"
-                            # "text": f"Describe this image in one sentence. Output format: {output_format}"
+                            "text": prompt
                         },
-                        # {
-                        #     "type": "image_url",
-                        #     "image_url": {
-                        #         "url": image_data_url
-                        #     }
-                        # }
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_data_url
+                            }
+                        }
                     ]
                 }
             ],
-            "max_tokens": 2000,  # Adjust as needed
             "temperature": 0.7
         }
 
@@ -124,7 +141,8 @@ class OlmOCRModel(BaseModel):
         file,
         output_format: str = "markdown",
         gpu_util: float = None,
-        max_len: int = None
+        max_len: int = None,
+        prompt: str = None
     ) -> ProcessingResult:
         """
         Process a file using external VLLM server API.
@@ -134,6 +152,7 @@ class OlmOCRModel(BaseModel):
             output_format: Desired output format
             gpu_util: GPU memory utilization (parameter kept for compatibility)
             max_len: Maximum model length (parameter kept for compatibility)
+            prompt: Custom prompt to use for processing. If None, uses default prompt.
 
         Returns:
             ProcessingResult with standardized output
@@ -150,7 +169,7 @@ class OlmOCRModel(BaseModel):
         try:
             # Process with external VLLM server
             start_time = time.time()
-            api_response = self.process_with_vllm_api(temp_file_path, output_format)
+            api_response = self.process_with_vllm_api(temp_file_path, output_format, prompt)
             processing_time = time.time() - start_time
 
             # Extract content from chat completions response
