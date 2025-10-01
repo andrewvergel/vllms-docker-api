@@ -125,18 +125,16 @@ sudo systemctl status docker
 
 #### vLLM Server (docker-compose.yml):
 ```yaml
---max-model-len 24576          # Aumentado de 16384 (+50% contexto)
---gpu-memory-utilization 0.98  # Máxima utilización de GPU
---max-num-batched-tokens 65536 # Mayor throughput por batch
---max-num-seqs 256             # Más requests concurrentes
---tensor-parallel-size 1       # Single GPU para máxima eficiencia
---block-size 32                # Bloques más grandes para 48GB VRAM
---swap-space 16                # Más espacio de swap
---cpu-threads 36               # Usa todos los cores físicos
---max-parallel-loading-workers 4 # Carga más rápida de modelos
---disable-log-requests         # Reduce overhead de logging
---enable-chunked-prefill       # Optimiza procesamiento de prompts largos
---max-seq-len-to-capture 8192  # Captura eficiente de secuencias
+--max-model-len 20480              # Aumentado de 16384 (+25% contexto)
+--gpu-memory-utilization 0.96      # Alta utilización de GPU (segura)
+--max-num-batched-tokens 49152     # Mayor throughput por batch
+--max-num-seqs 192                 # Más requests concurrentes
+--tensor-parallel-size 1           # Single GPU para máxima eficiencia
+--block-size 32                    # Bloques más grandes para 48GB VRAM
+--swap-space 12                    # Espacio de swap optimizado
+--max-parallel-loading-workers 4   # Carga más rápida de modelos
+--enable-chunked-prefill           # Optimiza procesamiento de prompts largos
+--disable-log-stats                # Reduce overhead de estadísticas
 ```
 
 #### API (main.py):
