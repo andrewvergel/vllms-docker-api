@@ -68,14 +68,15 @@ class OlmOCRModel(BaseModel):
                     "content": [
                         {
                             "type": "text",
-                            "text": f"Describe this image in one sentence. Output format: {output_format}"
+                            "text": "Que modelo eres?"
+                            # "text": f"Describe this image in one sentence. Output format: {output_format}"
                         },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_data_url
-                            }
-                        }
+                        # {
+                        #     "type": "image_url",
+                        #     "image_url": {
+                        #         "url": image_data_url
+                        #     }
+                        # }
                     ]
                 }
             ],

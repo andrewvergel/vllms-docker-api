@@ -32,7 +32,7 @@ services:
           "CMD",
           "sh",
           "-c",
-          "curl -f http://localhost:${VLLM_PORT}/health || exit 1",
+          'curl -f http://localhost:${VLLM_PORT}/health && curl -f -X POST http://localhost:${VLLM_PORT}/v1/completions -H ''Content-Type: application/json'' -d ''{"model":"olmocr","prompt":"warm","max_tokens":5,"temperature":0.1}'' || exit 1',
         ]
       interval: 30s
       timeout: 30s
