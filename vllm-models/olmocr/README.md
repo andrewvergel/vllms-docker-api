@@ -1,57 +1,57 @@
 # OlmOCR vLLM Model
 
-Este directorio contiene la configuración para ejecutar el modelo OlmOCR usando vLLM en una máquina con GPU.
+This directory contains the configuration for running the OlmOCR model using vLLM on a GPU-enabled machine.
 
-## 🚀 Inicio Rápido
+## 🚀 Quick Start
 
-### Prerrequisitos
+### Prerequisites
 
-- Docker y Docker Compose instalados
-- GPU NVIDIA con drivers instalados
-- Suficiente memoria GPU (recomendado 8GB+)
+- Docker and Docker Compose installed
+- NVIDIA GPU with drivers installed
+- Sufficient GPU memory (8GB+ recommended)
 
-### Ejecutar el Modelo
+### Run the Model
 
 ```bash
-# Desde el directorio raíz del proyecto
+# From the project root directory
 cd vllm-models/olmocr
 
-# Configurar según tu GPU (opcional)
+# Configure for your GPU (optional)
 nano .env
 
-# Iniciar el servidor vLLM
+# Start the vLLM server
 docker-compose up -d
 
-# Ver logs en tiempo real
+# View logs in real-time
 docker-compose logs -f ${CONTAINER_NAME}
 
-# Detener el servidor
+# Stop the server
 docker-compose down
 ```
 
-### Verificación
+### Verification
 
-Una vez iniciado, puedes verificar que el servidor esté funcionando:
+Once started, you can verify the server is working:
 
 ```bash
 # Health check
 curl http://localhost:${VLLM_PORT}/health
 
-# Lista de modelos disponibles
+# List available models
 curl http://localhost:${VLLM_PORT}/v1/models
 
-# Ver información del modelo
+# View model information
 curl http://localhost:${VLLM_PORT}/v1/models/${VLLM_SERVED_MODEL_NAME}
 ```
 
-## ⚙️ Configuración
+## ⚙️ Configuration
 
-Toda la configuración se realiza mediante variables de entorno en el archivo `.env`. Esto permite ajustar fácilmente los parámetros según las capacidades de tu GPU.
+All configuration is done through environment variables in the `.env` file. This allows you to easily adjust parameters according to your GPU capabilities.
 
-### Archivo .env
+### .env File
 
 ```bash
-# Modelo
+# Model
 VLLM_MODEL=allenai/olmOCR-7B-0825-FP8
 MODEL_NAME=olmocr
 
@@ -59,132 +59,132 @@ MODEL_NAME=olmocr
 CUDA_VISIBLE_DEVICES=0
 GPU_MEMORY_UTILIZATION=0.9
 
-# Servidor
+# Server
 HOST=0.0.0.0
 PORT=8001
 
-# Rendimiento
+# Performance
 MAX_MODEL_LEN=8192
 TENSOR_PARALLEL_SIZE=1
 MAX_NUM_BATCHED_TOKENS=32768
 ```
 
-### Parámetros del Modelo
+### Model Parameters
 
-Los valores actuales son:
-- **Modelo:** `${VLLM_MODEL}`
-- **Puerto:** `${VLLM_PORT}`
-- **Nombre del modelo servido:** `${VLLM_SERVED_MODEL_NAME}`
-- **Longitud máxima:** `${VLLM_MAX_MODEL_LEN}` tokens
-- **Utilización de memoria GPU:** `${VLLM_GPU_MEMORY_UTILIZATION}`
-- **Batch size máximo:** `${VLLM_MAX_NUM_BATCHED_TOKENS}` tokens
+Current values are:
+- **Model:** `${VLLM_MODEL}`
+- **Port:** `${VLLM_PORT}`
+- **Served model name:** `${VLLM_SERVED_MODEL_NAME}`
+- **Max length:** `${VLLM_MAX_MODEL_LEN}` tokens
+- **GPU memory utilization:** `${VLLM_GPU_MEMORY_UTILIZATION}`
+- **Max batch size:** `${VLLM_MAX_NUM_BATCHED_TOKENS}` tokens
 
-### Recursos Requeridos
+### Required Resources
 
-- **GPU:** 1 GPU NVIDIA (cualquier modelo con suficiente memoria)
-- **Memoria GPU:** Mínimo 8GB recomendado
-- **RAM del sistema:** 16GB+ recomendado
-- **Almacenamiento:** 50GB+ para modelos y cache
+- **GPU:** 1 NVIDIA GPU (any model with sufficient memory)
+- **GPU Memory:** Minimum 8GB recommended
+- **System RAM:** 16GB+ recommended
+- **Storage:** 50GB+ for models and cache
 
-## 🔧 Personalización
+## 🔧 Customization
 
-### Ajustar Parámetros por GPU
+### Adjust Parameters by GPU
 
-Edita el archivo `.env` para ajustar según tu GPU:
+Edit the `.env` file to adjust for your GPU:
 
 ```bash
-# Para GPUs con 8GB (RTX 3070, RTX 4060 Ti)
+# For 8GB GPUs (RTX 3070, RTX 4060 Ti)
 GPU_MEMORY_UTILIZATION=0.8
 MAX_MODEL_LEN=4096
 MAX_NUM_BATCHED_TOKENS=16384
 
-# Para GPUs con 6GB (RTX 3060)
+# For 6GB GPUs (RTX 3060)
 GPU_MEMORY_UTILIZATION=0.7
 MAX_MODEL_LEN=2048
 MAX_NUM_BATCHED_TOKENS=8192
 
-# Para GPUs con 4GB (GTX 1650)
+# For 4GB GPUs (GTX 1650)
 GPU_MEMORY_UTILIZATION=0.6
 MAX_MODEL_LEN=1024
 MAX_NUM_BATCHED_TOKENS=4096
 ```
 
-### Variables de Entorno Adicionales
+### Additional Environment Variables
 
 ```bash
-# Número de GPUs a usar
+# Number of GPUs to use
 CUDA_VISIBLE_DEVICES=0,1
 
-# Nivel de logging
+# Logging level
 VLLM_LOGGING_LEVEL=INFO
 
-# Configuración avanzada
+# Advanced configuration
 TENSOR_PARALLEL_SIZE=1
 ```
 
-## 📡 Uso con la API
+## 📡 Usage with API
 
-Una vez que el servidor vLLM esté corriendo, puedes usar la API de OlmOCR:
+Once the vLLM server is running, you can use the OlmOCR API:
 
 ```bash
-# Desde el directorio raíz del proyecto
+# From the project root directory
 cd ../vllm-docker-api
 
-# Configurar la URL del servidor vLLM en .env
+# Configure the vLLM server URL in .env
 echo "VLLM_SERVER_URL=http://localhost:${VLLM_PORT}" >> .env
 
-# Iniciar la API de OlmOCR
-docker-compose -f docker-compose.cpu.yml up -d
+# Start the OlmOCR API
+docker-compose -f docker-compose.gpu.yml up -d
 
-# La API estará disponible en http://localhost:8000
-# El servidor vLLM en http://localhost:${VLLM_PORT}
+# API will be available at http://localhost:8000
+# vLLM server at http://localhost:${VLLM_PORT}
 ```
 
-## 🛠️ Solución de Problemas
+## 🛠️ Troubleshooting
 
-### Error de CUDA
+### CUDA Error
 
 ```bash
-# Verificar instalación de CUDA
+# Check CUDA installation
 nvidia-smi
 
-# Verificar drivers
+# Check drivers
 docker run --rm --gpus all nvidia/cuda:11.8-base-ubuntu20.04 nvidia-smi
 ```
 
-### Memoria Insuficiente
+### Insufficient Memory
 
 ```bash
-# Editar .env según tu GPU
+# Edit .env for your GPU
 nano .env
 
-# Reducir uso de memoria para GPUs con menos VRAM
+# Reduce memory usage for GPUs with less VRAM
 GPU_MEMORY_UTILIZATION=0.7
 MAX_MODEL_LEN=4096
 MAX_NUM_BATCHED_TOKENS=8192
 
-# Reiniciar el servidor
+# Restart the server
 docker-compose down
 docker-compose up -d
 ```
 
-### Problemas de Puerto
+### Port Issues
 
 ```bash
-# Verificar puertos disponibles
+# Check available ports
 netstat -tulpn | grep :${VLLM_PORT}
 
-# Cambiar puerto en .env
+# Change port in .env
 VLLM_PORT=8002
 
-# Reiniciar el servidor
+# Restart the server
 docker-compose down
 docker-compose up -d
 ```
 
-## 📊 Monitoreo
+## 📊 Monitoring
 
-### Uso de Recursos
+### Resource Usage
 
 ```bash
 # GPU usage
@@ -193,10 +193,10 @@ nvidia-smi
 # Container stats
 docker stats vllm-olmocr
 
-# Logs del container
+# Container logs
 docker-compose logs -f vllm-olmocr
 
-# Información detallada del modelo
+# Detailed model information
 curl http://localhost:${VLLM_PORT}/v1/models/${VLLM_SERVED_MODEL_NAME}
 ```
 
@@ -206,38 +206,38 @@ curl http://localhost:${VLLM_PORT}/v1/models/${VLLM_SERVED_MODEL_NAME}
 # Health endpoint
 curl http://localhost:${VLLM_PORT}/health
 
-# Modelos cargados
+# Loaded models
 curl http://localhost:${VLLM_PORT}/v1/models
 
-# Información específica del modelo
+# Specific model information
 curl http://localhost:${VLLM_PORT}/v1/models/${VLLM_SERVED_MODEL_NAME}
 
-# Métricas (si disponibles)
+# Metrics (if available)
 curl http://localhost:${VLLM_PORT}/metrics
 
-# Ver configuración actual
-echo "Modelo: ${VLLM_MODEL}"
-echo "Puerto: ${VLLM_PORT}"
-echo "Nombre servido: ${VLLM_SERVED_MODEL_NAME}"
+# View current configuration
+echo "Model: ${VLLM_MODEL}"
+echo "Port: ${VLLM_PORT}"
+echo "Served name: ${VLLM_SERVED_MODEL_NAME}"
 ```
 
-## 🔄 Actualizaciones
+## 🔄 Updates
 
-Para actualizar el modelo:
+To update the model:
 
 ```bash
-# Detener el container
+# Stop the container
 docker-compose down
 
-# Limpiar cache si es necesario
+# Clear cache if necessary
 docker volume rm vllm-models_model_cache
 
-# Reiniciar
+# Restart
 docker-compose up -d
 ```
 
-## 📚 Referencias
+## 📚 References
 
-- [Documentación oficial de vLLM](https://docs.vllm.ai/)
-- [Modelo OlmOCR en Hugging Face](https://huggingface.co/allenai/olmOCR-7B-0825)
-- [Guía de instalación GPU](https://docs.vllm.ai/en/stable/getting_started/installation/gpu.html)
+- [Official vLLM Documentation](https://docs.vllm.ai/)
+- [OlmOCR Model on Hugging Face](https://huggingface.co/allenai/olmOCR-7B-0825)
+- [GPU Installation Guide](https://docs.vllm.ai/en/stable/getting_started/installation/gpu.html)

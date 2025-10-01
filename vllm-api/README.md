@@ -1,45 +1,45 @@
-# Multi-Model OCR API
+# Multi-Model AI API
 
-A production-ready OCR (Optical Character Recognition) service that can connect to multiple vLLM servers for processing different models. Built with a microservices architecture using vLLM for high-performance inference and FastAPI for the REST API layer.
+A production-ready AI service that can connect to multiple vLLM servers for processing different types of models. Built with a microservices architecture using vLLM for high-performance inference and FastAPI for the REST API layer.
 
 ## Overview
 
-This project provides a containerized OCR solution that combines:
+This project provides a containerized AI solution that combines:
 - **Multi-Model Support**: Connect to multiple vLLM servers via environment variables
 - **Dynamic Routing**: Automatically route requests to appropriate vLLM server based on model
-- **FastAPI Interface**: REST API for document processing with file upload support
+- **FastAPI Interface**: REST API for content processing with file upload support
 - **Flexible Configuration**: Easy model management through environment variables
 
 ## Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐
-│   FastAPI       │◄──►│   VLLM Server    │
+│   FastAPI       │◄──►│   vLLM Server    │
 │   Container     │    │   Container      │
 │   (Port 8000)   │    │   (Port 8001)    │
 └─────────────────┘    └──────────────────┘
-         │                       │
-         ▼                       ▼
+          │                       │
+          ▼                       ▼
 ┌─────────────────┐    ┌──────────────────┐
-│   File Upload   │    │   OlmOCR Model   │
+│   File Upload   │    │   AI Model       │
 │   Processing    │    │   Inference      │
 └─────────────────┘    └──────────────────┘
 ```
 
 ## Features
 
-- 🚀 **High-Performance OCR**: State-of-the-art vision-language model for accurate text extraction
-- 📁 **Multi-Format Support**: Process PDF documents and image files
+- 🚀 **High-Performance AI**: State-of-the-art models for accurate content processing
+- 📁 **Multi-Format Support**: Process PDF documents, images, and text
 - 🔄 **RESTful API**: Simple HTTP endpoints for easy integration
 - 🐳 **Containerized**: Easy deployment with Docker Compose
-- ⚡ **GPU Accelerated**: NVIDIA CUDA support for optimal performance
+- ⚡ **GPU Accelerated**: NVIDIA CUDA support for optimal performance (required)
 - 📊 **Health Monitoring**: Built-in health checks and status endpoints
 - 🔧 **Configurable**: Adjustable GPU memory utilization and model parameters
 
 ## Prerequisites
 
 - **Docker** and **Docker Compose**
-- **NVIDIA GPU** with CUDA support (recommended for production)
+- **NVIDIA GPU** with CUDA support (required)
 - **Python 3.8+** (for local development)
 - **Git** (for cloning the repository)
 
@@ -48,7 +48,7 @@ This project provides a containerized OCR solution that combines:
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd vllm-docker-api
+cd vllms-docker-api
 ```
 
 ### 2. Start the Services
@@ -58,19 +58,8 @@ cd vllm-docker-api
 docker compose up -d
 ```
 
-#### For Systems without GPU (CPU-only):
-```bash
-# Using the CPU-optimized configuration
-./start-cpu.sh
-```
-
-Or manually:
-```bash
-docker compose -f docker-compose.cpu.yml up -d
-```
-
 This will start both containers:
-- `olmocr-api` on `http://localhost:8000`
+- `multi-model-api` on `http://localhost:8000`
 - `vllm-server` on `http://localhost:8001`
 
 ### 3. Check Status and Available Models
@@ -82,7 +71,7 @@ curl http://localhost:8000/health
 curl http://localhost:8000/models
 ```
 
-### 4. Process a Document
+### 4. Process Content
 ```bash
 # List available models first
 curl http://localhost:8000/models
@@ -99,12 +88,12 @@ curl -X POST "http://localhost:8000/process?model=olmocr" \
 Service information and available models
 ```json
 {
-  "service": "Multi-Model OCR API",
+  "service": "Multi-Model AI API",
   "vllm_servers": {
     "olmocr": "http://vllm-olmocr:8001",
-    "model2": "http://vllm-model2:8002"
+    "llama": "http://vllm-llama:8002"
   },
-  "available_models": ["olmocr", "model2"],
+  "available_models": ["olmocr", "llama"],
   "status": "running"
 }
 ```
@@ -116,7 +105,7 @@ Health check for all configured vLLM servers
   "status": "healthy",
   "servers_health": {
     "olmocr (http://vllm-olmocr:8001)": true,
-    "model2 (http://vllm-model2:8002)": true
+    "llama (http://vllm-llama:8002)": true
   },
   "total_servers": 2,
   "healthy_servers": 2
@@ -179,11 +168,6 @@ Process a PDF or image file with a specific model
 | `VLLM_SERVER_[MODEL]` | `VLLM_SERVER_OLMOCR=http://vllm-olmocr:8001` | vLLM server for specific model |
 | `VLLM_MODEL_[MODEL]` | `VLLM_MODEL_OLMOCR=olmocr` | Served model name (optional) |
 
-#### Device Configuration
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OLMOCR_DEVICE` | `cpu` | Device type for processing |
-
 ### Example Configuration
 
 ```bash
@@ -193,11 +177,11 @@ DEFAULT_MAX_LEN=18608
 
 # Model servers
 VLLM_SERVER_OLMOCR=http://vllm-olmocr:8001
-VLLM_SERVER_MODEL2=http://vllm-model2:8002
+VLLM_SERVER_LLAMA=http://vllm-llama:8002
 
 # Optional: Custom served names
 VLLM_MODEL_OLMOCR=olmocr
-VLLM_MODEL_MODEL2=model2
+VLLM_MODEL_LLAMA=llama
 ```
 
 ## Development
@@ -210,7 +194,7 @@ cd app
 pip install -r requirements.txt
 ```
 
-2. **Start VLLM Server**
+2. **Start vLLM Server**
 ```bash
 docker run -d --name vllm-server \
   --gpus all \
@@ -229,7 +213,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ### Project Structure
 
 ```
-vllm-docker-api/
+vllms-docker-api/
 ├── app/                    # FastAPI application
 │   ├── main.py            # API endpoints and logic
 │   └── requirements.txt   # Python dependencies
@@ -237,8 +221,6 @@ vllm-docker-api/
 │   └── warmup/           # Model warmup files (not currently used)
 ├── Dockerfile            # API container definition
 ├── docker-compose.yml    # GPU-accelerated setup
-├── docker-compose.cpu.yml # CPU-only setup (Mac/Windows/Linux)
-├── start-cpu.sh          # Startup script for CPU-only mode
 ├── entrypoint.sh         # Container startup script
 ├── .gitignore           # Git ignore patterns
 └── README.md            # This file
@@ -257,92 +239,11 @@ vllm-docker-api/
 ### Batch Processing
 For multiple files, consider implementing client-side batching to optimize GPU utilization.
 
-## CPU-Only Setup
-
-### System Requirements
-
-The `docker-compose.cpu.yml` configuration works on any system without GPU requirements:
-
-- **CPU-Only Mode**: Runs without GPU acceleration for maximum compatibility
-- **Memory Limits**: Conservative memory allocation (8GB for VLLM, 2GB for API)
-- **Reduced Model Length**: Lower `max-model-len` (4096) for stability
-- **No GPU Dependencies**: Works on any system with Docker support
-
-### Supported Platforms
-
-This configuration works on:
-- **Mac (Intel/Apple Silicon)** without GPU support
-- **Linux systems** without NVIDIA GPUs
-- **Windows** with Docker Desktop (CPU mode)
-- **Cloud instances** without GPU access
-- **Development environments** with limited resources
-
-### Performance Expectations
-
-- **Processing Speed**: Slower than GPU-accelerated version (CPU-only)
-- **Memory Usage**: More predictable and stable
-- **Model Loading**: First startup may take 5-10 minutes for model download
-- **Resource Usage**: Lower memory footprint, suitable for development
-
-### Troubleshooting for CPU-Only Setup
-
-1. **Docker Issues**
-   ```bash
-   # Check Docker status
-   docker info
-
-   # Restart Docker if needed
-   ```
-
-2. **Memory Issues**
-   ```bash
-   # Check available memory
-   docker system df
-
-   # Clean up unused containers/images
-   docker system prune -a
-   ```
-
-3. **Port Conflicts**
-   ```bash
-   # Check port usage (Linux/macOS)
-   lsof -i :8000
-   lsof -i :8001
-
-   # Or on Windows:
-   # netstat -ano | findstr :8000
-
-   # Kill process using port
-   kill -9 $(lsof -ti:8000)
-   ```
-
-4. **Model Download Issues**
-   ```bash
-   # Clear model cache
-   docker volume rm vllm-docker-api_model_cache
-
-   # Check download progress
-   docker compose -f docker-compose.cpu.yml logs vllm-server
-   ```
-
-### Logs (CPU Setup)
-```bash
-# View all logs
-docker compose -f docker-compose.cpu.yml logs
-
-# View specific service logs
-docker compose -f docker-compose.cpu.yml logs olmocr-api-cpu
-docker compose -f docker-compose.cpu.yml logs vllm-server-cpu
-
-# Follow logs in real-time
-docker compose -f docker-compose.cpu.yml logs -f
-```
-
-## General Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
-1. **GPU Not Detected (Linux)**
+1. **GPU Not Detected**
    ```bash
    # Check GPU availability
    nvidia-smi
@@ -352,24 +253,25 @@ docker compose -f docker-compose.cpu.yml logs -f
 
 2. **Port Conflicts**
    ```bash
-   # Check port usage (Linux)
-   netstat -tlnp | grep :8000
+   # Check port usage
+   lsof -i :8000
+   lsof -i :8001
    # Modify ports in docker-compose.yml if needed
    ```
 
 3. **Model Download Issues**
    ```bash
    # Clear model cache
-   docker volume rm vllm-docker-api_model_cache
+   docker volume rm vllms-docker-api_model_cache
    ```
 
-### Logs (Linux)
+### Logs
 ```bash
 # View all logs
 docker compose logs
 
 # View specific service logs
-docker compose logs olmocr-api
+docker compose logs multi-model-api
 docker compose logs vllm-server
 ```
 
@@ -389,5 +291,5 @@ This project is provided as-is for educational and development purposes.
 
 For issues and questions:
 1. Check the troubleshooting section
-2. Review Docker and VLLM documentation
+2. Review Docker and vLLM documentation
 3. Open an issue with detailed information
