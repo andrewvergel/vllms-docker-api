@@ -135,12 +135,21 @@ sudo systemctl status docker
 --max-parallel-loading-workers 4   # Carga más rápida de modelos
 --enable-chunked-prefill           # Optimiza procesamiento de prompts largos
 --disable-log-stats                # Reduce overhead de estadísticas
+--disable-custom-all-reduce        # Deshabilita all-reduce personalizado (P2P no disponible)
 ```
 
 #### API (main.py):
 ```python
-DEFAULT_GPU_UTIL = "0.98"      # Máxima utilización
-DEFAULT_MAX_LEN = "24576"      # Más contexto disponible
+DEFAULT_GPU_UTIL = "0.96"      # Alta utilización (segura)
+DEFAULT_MAX_LEN = "20480"      # Más contexto disponible
+
+### Variables de entorno adicionales:
+```yaml
+TORCH_CUDA_ARCH_LIST=8.6          # Arquitectura CUDA específica (evita warnings)
+OMP_NUM_THREADS=1                 # Controla paralelismo PyTorch
+NCCL_DEBUG=INFO                   # Debug de comunicación GPU
+CUDA_VISIBLE_DEVICES=0            # Usa solo primera GPU
+```
 ```
 
 ### Comandos para monitoreo de rendimiento:
@@ -189,7 +198,17 @@ curl -X POST "http://localhost:8000/process" \
 ```
 
 ### Resultados esperados:
-- **Mayor throughput**: +50-100% más tokens por segundo
-- **Mayor concurrencia**: Hasta 256 requests simultáneos
+- **Mayor throughput**: +25-50% más tokens por segundo
+- **Mayor concurrencia**: Hasta 192 requests simultáneos
 - **Mejor latencia**: Procesamiento más rápido de documentos largos
-- **Uso eficiente de recursos**: 98% de utilización de GPU
+- **Uso eficiente de recursos**: 96% de utilización de GPU (estable)
+- **Comunicación GPU optimizada** (single GPU para evitar problemas P2P)
+
+### Troubleshooting aplicado basado en logs:
+
+**Problemas identificados y solucionados:**
+- ✅ **Tensor Parallel Size**: Cambiado de 2 a 1 (P2P no disponible)
+- ✅ **Custom All-Reduce**: Deshabilitado explícitamente
+- ✅ **OMP Threads**: Controlado con variable de entorno
+- ✅ **CUDA Architecture**: Especificada para evitar warnings
+- ✅ **Log Stats**: Deshabilitado para reducir overhead
