@@ -48,6 +48,27 @@ curl http://localhost:${VLLM_PORT}/v1/models/${VLLM_SERVED_MODEL_NAME}
 
 All configuration is done through environment variables in the `.env` file. This allows you to easily adjust parameters according to your GPU capabilities.
 
+### 📋 Configuración Optimizada para RTX 4070 Ti (12GB)
+
+Esta configuración está específicamente optimizada para GPUs RTX 4070 Ti con 12GB de VRAM:
+
+| Parámetro | Valor | Razón |
+|-----------|-------|-------|
+| `GPU_MEMORY_UTILIZATION` | `0.5` | Usa 50% de VRAM (6GB) para evitar errores OOM |
+| `MAX_MODEL_LEN` | `2048` | Longitud de contexto reducida para ahorrar memoria |
+| `MAX_NUM_BATCHED_TOKENS` | `8192` | Tamaño de batch optimizado para 12GB VRAM |
+| `PYTORCH_CUDA_ALLOC_CONF` | `expandable_segments:True` | Previene fragmentación de memoria |
+
+### 🔧 Ajustes por Capacidad de GPU
+
+| GPU | VRAM | GPU_MEMORY_UTIL | MAX_MODEL_LEN | MAX_BATCH_TOKENS |
+|-----|------|----------------|---------------|------------------|
+| RTX 4090 | 24GB | 0.85 | 8192 | 32768 |
+| RTX 4070 Ti | 12GB | 0.5 | 2048 | 8192 |
+| RTX 3070 | 8GB | 0.4 | 2048 | 4096 |
+| RTX 3060 | 6GB | 0.35 | 1024 | 4096 |
+| GTX 1650 | 4GB | 0.3 | 1024 | 2048 |
+
 ### .env File
 
 ```bash
@@ -151,6 +172,33 @@ nvidia-smi
 # Check drivers
 docker run --rm --gpus all nvidia/cuda:11.8-base-ubuntu20.04 nvidia-smi
 ```
+
+### Memoria Insuficiente (RTX 4090)
+
+Si experimentas errores `CUDA out of memory` con RTX 4090:
+
+1. **Verifica el uso actual de GPU**:
+   ```bash
+   nvidia-smi
+   ```
+
+2. **Aplica la configuración optimizada**:
+   ```bash
+   cd vllm-models/olmocr
+   cp .env.example .env
+   docker-compose down
+   docker-compose up -d
+   ```
+
+3. **Si persiste, reduce gradualmente**:
+   - `GPU_MEMORY_UTILIZATION`: prueba `0.8` (19.2GB)
+   - `MAX_MODEL_LEN`: prueba `4096`
+   - `MAX_NUM_BATCHED_TOKENS`: prueba `16384`
+
+4. **Limpieza de memoria**:
+   ```bash
+   docker system prune -f
+   ```
 
 ### Insufficient Memory
 

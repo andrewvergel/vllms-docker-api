@@ -8,14 +8,7 @@ services:
       --port ${VLLM_PORT}
       --served-model-name ${VLLM_SERVED_MODEL_NAME}
       --max-model-len ${VLLM_MAX_MODEL_LEN}
-      --swap-space 8
       --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION}
-      --tensor-parallel-size ${VLLM_TENSOR_PARALLEL_SIZE}
-      --max-num-batched-tokens ${VLLM_MAX_NUM_BATCHED_TOKENS}
-      --dtype float16
-      --enforce-eager
-      --max-num-seqs 16
-      --disable-log-requests
     ports:
       - "${VLLM_PORT}:${VLLM_PORT}"
     volumes:
