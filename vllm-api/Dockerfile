@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Instalar dependencias del sistema necesarias para olmocr
+# Instalar dependencias del sistema necesarias para olmocr y procesamiento de PDFs
 RUN apt-get update && apt-get install -y \
     build-essential \
     libglib2.0-0 \
@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     libgomp1 \
     curl \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar dependencias de la API

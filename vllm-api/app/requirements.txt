@@ -3,3 +3,13 @@ uvicorn[standard]
 python-multipart
 requests
 olmocr
+pdf2image
+Pillow
+
+# Note: For PDF processing, you also need to install poppler-utils system package:
+# Ubuntu/Debian: sudo apt-get install poppler-utils
+# macOS: brew install poppler
+# Windows: Download from https://blog.alivate.com.au/poppler-windows/
+#
+# To check if PDF processing is working, run:
+# python -c "from app.models.olmocr_model import OlmOCRModel; print(OlmOCRModel.check_pdf_support())"
