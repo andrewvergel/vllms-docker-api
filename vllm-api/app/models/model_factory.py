@@ -77,9 +77,14 @@ class ModelFactory:
 
         if model_name not in cls._models:
             if model_class is None:
-                # Default to OlmOCR for now - can be extended
-                from .olmocr_model import OlmOCRModel
-                model_class = OlmOCRModel
+                # Select model class based on model name
+                if 'dotsocr' in model_name.lower():
+                    from .dotsocr_model import DotsOCRModel
+                    model_class = DotsOCRModel
+                else:
+                    # Default to OlmOCR for backward compatibility
+                    from .olmocr_model import OlmOCRModel
+                    model_class = OlmOCRModel
 
             cls._models[model_name] = model_class(config)
 

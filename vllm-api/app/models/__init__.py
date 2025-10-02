@@ -9,6 +9,7 @@ input/output interfaces.
 from .base_model import BaseModel, ModelConfig, ProcessingResult
 from .model_factory import ModelFactory
 from .olmocr_model import OlmOCRModel
+from .dotsocr_model import DotsOCRModel
 from .pdf_converter import (
     PDFConverter,
     DefaultPDFConverter,
@@ -27,6 +28,7 @@ __all__ = [
     'ProcessingResult',
     'ModelFactory',
     'OlmOCRModel',
+    'DotsOCRModel',
     # PDF Converter Library
     'PDFConverter',
     'DefaultPDFConverter',
